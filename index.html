@@ -169,21 +169,55 @@
         <div class="content has-text-justified">
           <p>
             Structured visual reasoning, like solving image puzzles, needs fine-grained visual perception, an
-            ability that current Vision Language Models (VLMs) largely lack. VLMs built on CLIP-based ViT
-            backbones trade fine-grained detail for high-level semantics, and we show this loss propagates
-            downstream.
+            ability that CLIP-based VLM backbones largely lack because they trade spatial detail for high-level
+            semantics. We recover it by fusing ViT (DINOv3) and Diffusion (CleanDIFT) representations into a
+            perception encoder we call <b>DiffusedDINO</b>, then align it with RoBERTa-L to get a text-aligned
+            model we call <b>TDDN</b>. With frozen backbones and only 590K alignment pairs, TDDN matches CLIP on
+            image-text retrieval and triples its dense-prediction accuracy (ADE20K 5.20 &rarr; 18.11 mIoU), and it
+            leads on segmentation among general-purpose contrastive encoders including SigLIP 2. We also
+            introduce <b>Puzzle Perception</b>, a puzzle-based segmentation and VQA dataset, on which TDDN
+            doubles CLIP's accuracy (11.04 &rarr; 22.51 mIoU).
           </p>
-          <p>
-            We recover it by fusing ViT (DINOv3) and Diffusion (CleanDIFT) representations into a perception
-            encoder we call <b>DiffusedDINO</b>, then align it with the RoBERTa-L language model to get a
-            text-aligned model we call <b>TDDN</b>. TDDN keeps this perceptual advantage: with frozen backbones
-            and only about 590K alignment pairs, it matches CLIP on image-text retrieval and triples its
-            dense-prediction accuracy (ADE20K 5.20 &rarr; 18.11 mIoU, COCO-Stuff 7.35 &rarr; 24.44), even though
-            CLIP trains on a far larger corpus. TDDN leads on segmentation benchmarks among general-purpose
-            contrastive encoders, including SigLIP 2. We also introduce <b>Puzzle Perception</b>, a puzzle-based
-            segmentation and visual question answering dataset that probes fine-grained spatial understanding.
-            TDDN doubles CLIP's segmentation accuracy on it (11.04 &rarr; 22.51 mIoU).
-          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONTRIBUTIONS ===================== -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">What's new</h2>
+        <div class="columns">
+          <div class="column">
+            <div class="content">
+              <h3 class="title is-5">A text-aligned fused encoder</h3>
+              <p>
+                TDDN fuses CleanDIFT and DINOv3, then aligns to language on frozen backbones and 590K pairs
+                without giving up its dense-perception advantage.
+              </p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="content">
+              <h3 class="title is-5">Regions that steer a frozen VLM</h3>
+              <p>
+                TDDN's predicted regions improve VLM puzzle perception through Contrastive Region Guidance, with
+                no weights updated and no segmentation supervision.
+              </p>
+            </div>
+          </div>
+          <div class="column">
+            <div class="content">
+              <h3 class="title is-5">The Puzzle Perception dataset</h3>
+              <p>
+                The first puzzle benchmark pairing pixel-level segmentation with visual question answering in
+                the same structured domains.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -199,11 +233,10 @@
         <div class="content has-text-justified">
           <p>
             DiffusedDINO pairs CleanDIFT decoder activations from layers 2, 5, and 8 with DINOv3 final-layer
-            patch tokens. The CleanDIFT layers resolve fine spatial boundaries without noise or timestep tuning,
-            while the DINOv3 tokens stay semantically organized and patch-consistent. We project each CleanDIFT
-            layer to a shared 512-d space, concatenate them, and fuse the result with the DINOv3 patch tokens.
-            The fused tokens, along with the DINOv3 CLS token, then pass through two trainable self-attention
-            blocks.
+            patch tokens. CleanDIFT resolves fine spatial boundaries without noise or timestep tuning, while
+            DINOv3 stays semantically organized and patch-consistent. We project each CleanDIFT layer to a
+            shared 512-d space, fuse the result with the DINOv3 patch tokens, and pass the fused tokens through
+            two trainable self-attention blocks.
           </p>
         </div>
         <img src="static/images/tddn.png" alt="TDDN architecture" style="max-width: 480px; display: block; margin: 0 auto;">
@@ -215,24 +248,13 @@
         </p>
         <div class="content has-text-justified" style="margin-top: 1.5rem;">
           <p>
-            <b>Building the image and text embeddings.</b> On the vision side, two trainable self-attention
-            blocks refine the fused DiffusedDINO patch tokens alongside the DINOv3 CLS token. We average-pool
-            the refined patch tokens and concatenate them with the refined CLS token to form the final image
-            embedding. On the text side, frozen RoBERTa-L token representations pass through two trainable
-            self-attention blocks, get aggregated with masked mean pooling, and get projected by a trainable
-            linear layer into the same dimensionality as the image embedding.
-          </p>
-          <p>
-            <b>Training objective.</b> Text alignment follows the low-data recipe of STRUCTURE. We use a
-            symmetric InfoNCE contrastive loss over image-text pairs, which pulls matching pairs together and
-            pushes non-matching pairs apart, and combine it with a regulariser that preserves the pairwise
-            geometry of each pretrained latent space, anchored on the frozen DINOv3 features. This keeps
-            alignment from eroding the fine-grained structure the fused encoder is built to capture.
-          </p>
-          <p>
-            Every backbone stays frozen, and we hold the objective, text encoder, data, and schedule fixed
-            across conditions. Any gain over CLIP therefore comes from the fused representation, not from a
-            stronger objective or text backbone.
+            To align this encoder with text, we pair it with a frozen RoBERTa-L and train only lightweight
+            attention and projection heads. The objective follows the low-data recipe of STRUCTURE: a symmetric
+            InfoNCE loss over image-text pairs, plus a regulariser anchored on frozen DINOv3 that preserves the
+            geometry of each pretrained latent space. That regulariser keeps alignment from eroding the
+            fine-grained structure the fusion is built to capture. Because every backbone stays frozen and the
+            objective, data, and schedule are fixed across conditions, any gain over CLIP comes from the fused
+            representation itself.
           </p>
         </div>
       </div>
@@ -250,11 +272,10 @@
           <p>
             Existing datasets each cover half of this problem. Segmentation benchmarks like COCO-Stuff and
             ADE20K give pixel-level annotations but no question-answering task, while puzzle-reasoning
-            benchmarks like CLEVR, GQA, PuzzleVQA, and AlgoPuzzleVQA test reasoning over structured scenes but
-            offer no dense supervision. Puzzle Perception pairs pixel-level segmentation with puzzle-based
-            visual question answering (PVQA) across four structured domains, rendered at 512&times;512 over 30
-            classes with masks taken directly from the rendering pipeline. No Puzzle Perception image appears
-            in the alignment corpus, so every reported result on it reflects zero-shot transfer.
+            benchmarks like PuzzleVQA and AlgoPuzzleVQA test reasoning over structured scenes but offer no dense
+            supervision. Puzzle Perception pairs both across four domains, rendered at 512&times;512 over 30
+            classes with masks taken straight from the rendering pipeline. None of its images appear in the
+            alignment corpus, so every result on it is zero-shot transfer.
           </p>
         </div>
 
@@ -327,14 +348,10 @@
         <h3 class="title is-5" style="margin-top: 2.5rem;">Zero-shot segmentation, keypoint matching, and retrieval</h3>
         <div class="content has-text-justified">
           <p>
-            All models use the MaskCLIP readout except FG-CLIP 2, which uses its own trained dense head, so its
-            numbers reflect a component the other models don't have.
-          </p>
-          <p>
             TDDN matches or exceeds SigLIP 2 on all five segmentation benchmarks and outperforms MetaCLIP,
-            OpenCLIP, and DFN across the board, using 590K alignment pairs against their billions. It also gains
-            over TDN (+1.6 ADE20K, +8.1 Cityscapes, +3.8 COCO-Stuff, +4.1 SPair), which isolates the CleanDIFT
-            contribution.
+            OpenCLIP, and DFN across the board, using 590K alignment pairs against their billions. Its gain over
+            TDN (+1.6 ADE20K, +8.1 Cityscapes, +3.8 COCO-Stuff, +4.1 SPair) isolates the CleanDIFT contribution.
+            All models use the MaskCLIP readout except FG-CLIP 2, which uses its own trained dense head.
           </p>
         </div>
         <div class="table-wrap">
@@ -364,52 +381,19 @@
           best value per column.
         </p>
 
-        <h3 class="title is-5" style="margin-top: 2.5rem;">Vision-only representation quality</h3>
-        <div class="table-wrap">
-        <table class="table is-fullwidth is-hoverable">
-          <thead>
-            <tr><th>Method</th><th>Seg (mIoU)</th><th>KPM (PCK@0.1)</th><th>Cls (top-1)</th></tr>
-          </thead>
-          <tbody>
-            <tr class="group-row"><td colspan="4">Vision-only</td></tr>
-            <tr><td>DINOv2-B/14</td><td>75.79</td><td>55.44</td><td>78.22</td></tr>
-            <tr><td>DINOv2-G/14</td><td>78.80</td><td>55.72</td><td>79.29</td></tr>
-            <tr><td>SD&prime; (Stable Diffusion)</td><td>74.77</td><td>56.46</td><td>12.54</td></tr>
-            <tr><td>SD&prime; + DINOv2-G/14</td><td>78.70</td><td>61.28</td><td>78.39</td></tr>
-            <tr><td>DN (DINOv3)</td><td>76.18</td><td>58.36</td><td>83.11</td></tr>
-            <tr><td>CD&prime; (CleanDIFT)</td><td>79.20</td><td>61.20</td><td>38.74</td></tr>
-            <tr class="ours"><td>DDN&prime; (ours)</td><td class="best">81.15</td><td class="best">64.39</td><td class="best">83.80</td></tr>
-            <tr class="group-row"><td colspan="4">Text-aligned</td></tr>
-            <tr><td>CLIP-L/14</td><td>71.33</td><td>24.89</td><td>73.10</td></tr>
-            <tr class="ours"><td>TDN (ours)</td><td>68.89</td><td>28.29</td><td>75.80</td></tr>
-            <tr class="ours"><td>TDDN (ours)</td><td>74.70</td><td>32.39</td><td>76.08</td></tr>
-          </tbody>
-        </table>
-        </div>
-        <p class="table-caption">
-          <b>Table 3.</b> Comparison of DDN&prime;, TDN, and TDDN with baselines on downstream visual perception
-          tasks. Seg (mIoU) measures segmentation on Puzzle Perception with an identical linear probe, KPM
-          (PCK@0.1) measures keypoint matching on SPair-71k, and Cls (top-1) measures image classification via
-          k-NN on ImageNet-1k. X&prime; denotes the PCA projection of X, where X &isin; {SD, DN, DDN}. Bold marks
-          the best value per column.
-        </p>
-
         <h3 class="title is-5" style="margin-top: 2.5rem;">Region-guided VLM perception</h3>
         <div class="content has-text-justified">
           <p>
-            Region-based prompting such as Set-of-Mark doesn't consistently help VLMs, since it relies on the
-            VLM's own visual priors to interpret an overlay it was never trained to read. Contrastive Region
-            Guidance (CRG) instead steers a frozen VLM by contrasting its prediction on the full image against
-            the same image with the queried region blacked out, without updating any VLM weights. The
-            <b>oracle</b> condition blacks out the ground-truth region and upper-bounds the achievable gain,
-            while the <b>TDDN</b> condition blacks out the region TDDN itself predicts, with no puzzle
-            segmentation supervision. We test whether TDDN's predicted regions can still steer a frozen VLM on
-            Puzzle Perception (Chess).
+            Overlay prompting like Set-of-Mark doesn't consistently help VLMs, since it leans on the VLM's own
+            visual priors to read a marking it was never trained on. Contrastive Region Guidance (CRG) instead
+            contrasts the VLM's prediction on the full image against the same image with the queried region
+            blacked out, updating no weights. The <b>oracle</b> condition blacks out the ground-truth region and
+            upper-bounds the gain, while <b>TDDN</b> blacks out the region TDDN predicts itself.
           </p>
           <p>
-            The benefit of region guidance tracks model headroom. Models with room to improve gain from both
-            region sources, while models near ceiling gain little from either. Where CRG helps, TDDN's predicted
-            regions recover a substantial share of the oracle gain.
+            The benefit tracks model headroom. Models with room to improve gain from both region sources, while
+            models near ceiling gain little from either. Where CRG helps, TDDN's predicted regions recover a
+            substantial share of the oracle gain.
           </p>
         </div>
         <div class="table-wrap">
@@ -430,7 +414,7 @@
         </table>
         </div>
         <p class="table-caption">
-          <b>Table 4.</b> Contrastive Region Guidance (CRG) with TDDN-predicted regions on Puzzle Perception
+          <b>Table 3.</b> Contrastive Region Guidance (CRG) with TDDN-predicted regions on Puzzle Perception
           (Chess). We report VLM question accuracy (%), macro-averaged over questions. Image only is the
           image-only baseline. &Delta; oracle and &Delta; TDDN are the accuracy changes from CRG using
           ground-truth (oracle) and TDDN-predicted regions.
@@ -470,36 +454,22 @@
         <div class="columns">
           <div class="column">
             <div class="content">
-              <h3 class="title is-5">The two sources split the work by granularity</h3>
+              <h3 class="title is-5">The sources split the work by granularity</h3>
               <p>
-                At the patch level, the fused representation sits closest to CleanDIFT (CKA 0.96, PWCCA 1.00).
-                At the global level, it sits closest to DINOv3 (CKA 0.81, PWCCA 0.99). Variance partitioning
-                confirms that neither source is recoverable from the other, so CleanDIFT supplies patch
-                structure while DINOv3 anchors global semantics.
+                The fusion sits closest to CleanDIFT at the patch level and closest to DINOv3 at the global
+                level, and neither source is recoverable from the other. CleanDIFT supplies patch structure
+                while DINOv3 anchors global semantics, which makes DiffusedDINO our strongest vision-only
+                encoder on all three probes.
               </p>
             </div>
           </div>
-          <div class="column">
-            <div class="content">
-              <h3 class="title is-5">Fusion buys balance, not one axis</h3>
-              <p>
-                Single encoders trade alignment against uniformity. DINOv3 has the best alignment (0.33) but the
-                worst uniformity (&minus;1.10), while CleanDIFT and SD show the reverse. DiffusedDINO takes the
-                best joint position (0.79, &minus;2.12), and the downstream gains track that balance.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="columns">
           <div class="column">
             <div class="content">
               <h3 class="title is-5">Alignment doesn't have to erase perception</h3>
               <p>
-                Freezing the backbones and adding the STRUCTURE regulariser keeps the pretrained geometry intact
-                through contrastive training. The dense advantage survives text alignment with 590K pairs
-                against CLIP's 400M, so the gap comes from the representation itself, not from alignment scale
-                or a task-specific dense head.
+                Frozen backbones plus the STRUCTURE regulariser keep the pretrained geometry intact through
+                contrastive training. The dense advantage survives alignment on 590K pairs, so the gap over
+                CLIP comes from the representation rather than alignment scale or a dense head.
               </p>
             </div>
           </div>
@@ -507,10 +477,9 @@
             <div class="content">
               <h3 class="title is-5">The classification gap is coverage, not quality</h3>
               <p>
-                Zero-shot classification trails CLIP because 590K captions cannot cover hundreds of visually
-                diverse categories, and the gap is largest on GTSRB, a concept largely absent from our captions.
-                TIP-Adapter with 16 shots per class closes most of it, lifting Caltech-101 from 79.66 to 90.50,
-                past CLIP's 86.49.
+                Zero-shot classification trails CLIP because 590K captions cannot cover hundreds of diverse
+                categories. TIP-Adapter with 16 shots closes most of it, lifting Caltech-101 from 79.66 to
+                90.50, past CLIP's 86.49.
               </p>
             </div>
           </div>
