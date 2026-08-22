@@ -15,7 +15,6 @@
 
   <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-carousel@4.0.24/dist/css/bulma-carousel.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-slider@2.0.5/dist/css/bulma-slider.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
@@ -34,18 +33,71 @@
     .publication-authors a:hover { text-decoration: underline; }
     .author-block { display: inline-block; }
     .publication-body img { max-width: 100%; }
-    .results-carousel { overflow: hidden; }
-    .results-carousel .item { margin: 5px; overflow: hidden; padding: 20px; font-size: 0; }
+    .slider { position: relative; margin: 1rem 0; padding: 0 3rem; }
+    .slider-viewport { overflow: hidden; height: 100%; }
+    .slider-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.4s ease;
+    }
+    .slider-slide {
+      flex: 0 0 100%;
+      min-width: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .slider-slide img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+    #pca-carousel .slider-viewport,
+    #results-carousel .slider-viewport { height: 380px; }
+    .dataset-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+    .dataset-grid img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 4px; }
+    .slider-arrow {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: #fff; border: 1px solid #dbdbdb; border-radius: 50%;
+      width: 40px; height: 40px; cursor: pointer; font-size: 16px; color: #363636;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .slider-arrow:hover { background: #f5f5f5; }
+    .slider-arrow-left { left: 0; }
+    .slider-arrow-right { right: 0; }
+    .slider-dots { display: flex; justify-content: center; gap: 8px; margin-top: 0.75rem; }
+    .slider-dots button {
+      width: 9px; height: 9px; border-radius: 50%; border: none; background: #dbdbdb; cursor: pointer; padding: 0;
+    }
+    .slider-dots button.is-active { background: hsl(204, 86%, 53%); }
     .content h2 { font-family: 'Google Sans', sans-serif; }
     .content .table { font-size: 0.85rem; }
     .content .table td, .content .table th { text-align: right; white-space: nowrap; vertical-align: middle; }
     .content .table td:first-child, .content .table th:first-child { text-align: left; }
     .table-wrap { overflow-x: auto; }
-    .ours { background-color: #f0f4ff; }
+    .ours { background-color: hsla(204, 86%, 53%, 0.09); box-shadow: inset 3px 0 0 hsl(204, 86%, 53%); }
     .ours td { font-weight: 600; }
+    .title.is-3 {
+      display: inline-block;
+      padding-bottom: 0.4rem;
+      border-bottom: 3px solid hsl(204, 86%, 53%);
+      margin-bottom: 1.5rem !important;
+    }
+    section.hero:first-of-type {
+      background: linear-gradient(180deg, hsla(204, 86%, 53%, 0.06) 0%, hsla(204, 86%, 53%, 0) 100%);
+    }
+    .publication-links .button.is-dark {
+      transition: background-color 0.15s ease, transform 0.1s ease;
+    }
+    .publication-links .button.is-dark:hover {
+      background-color: hsl(204, 86%, 53%);
+      transform: translateY(-1px);
+    }
     .best { color: #1f6f4a; font-weight: 700; }
     .group-row td { background-color: #fafafa; font-style: italic; color: #7a7a7a; }
-    .takeaway { border-left: 4px solid hsl(204, 86%, 53%); padding-left: 1rem; color: #4a4a4a; }
+    .table-caption { font-size: 0.9rem; color: #4a4a4a; margin-top: 0.5rem; }
+    .table-caption b { color: #363636; }
   </style>
 </head>
 <body>
@@ -89,13 +141,13 @@
                 </a>
               </span>
               <span class="link-block">
-                <a href="#" class="external-link button is-normal is-rounded is-dark">
+                <a href="https://github.com/adityaSomak/DiffusedDINOv1" class="external-link button is-normal is-rounded is-dark">
                   <span class="icon"><i class="fab fa-github"></i></span>
                   <span>Code</span>
                 </a>
               </span>
               <span class="link-block">
-                <a href="#" class="external-link button is-normal is-rounded is-dark">
+                <a href="https://huggingface.co/datasets/PuzzleBench/Puzzle_Perception" class="external-link button is-normal is-rounded is-dark">
                   <span class="icon"><i class="far fa-images"></i></span>
                   <span>Puzzle Perception</span>
                 </a>
@@ -116,20 +168,21 @@
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-            Structured visual reasoning, such as image puzzles, demands fine-grained visual perception, an
-            ability current Vision Language Models (VLMs) largely lack. VLMs built on CLIP-based ViT backbones
-            trade fine-grained detail for high-level semantics, and we show this loss propagates downstream.
+            Structured visual reasoning, like solving image puzzles, needs fine-grained visual perception, an
+            ability that current Vision Language Models (VLMs) largely lack. VLMs built on CLIP-based ViT
+            backbones trade fine-grained detail for high-level semantics, and we show this loss propagates
+            downstream.
           </p>
           <p>
-            To recover it, we fuse ViT (DINOv3) and Diffusion (CleanDIFT) representations into a perception
-            encoder (<b>DiffusedDINO</b>) and align it with the RoBERTa-L language model, yielding a text-aligned
-            model (<b>TDDN</b>) that preserves this perceptual advantage: with frozen backbones and only ~590K
-            alignment pairs, TDDN matches CLIP on image-text retrieval while tripling its dense-prediction
-            accuracy (ADE20K 5.20 &rarr; 18.11 mIoU, COCO-Stuff 7.35 &rarr; 24.44), despite CLIP's training on a
-            massive corpus. TDDN leads on segmentation benchmarks among general-purpose contrastive encoders,
-            including SigLIP 2. We further introduce <b>Puzzle Perception</b>, a puzzle-based segmentation and
-            visual question answering dataset that probes fine-grained spatial understanding, on which TDDN
-            doubles CLIP's segmentation accuracy (11.04 &rarr; 22.51 mIoU).
+            We recover it by fusing ViT (DINOv3) and Diffusion (CleanDIFT) representations into a perception
+            encoder we call <b>DiffusedDINO</b>, then align it with the RoBERTa-L language model to get a
+            text-aligned model we call <b>TDDN</b>. TDDN keeps this perceptual advantage: with frozen backbones
+            and only about 590K alignment pairs, it matches CLIP on image-text retrieval and triples its
+            dense-prediction accuracy (ADE20K 5.20 &rarr; 18.11 mIoU, COCO-Stuff 7.35 &rarr; 24.44), even though
+            CLIP trains on a far larger corpus. TDDN leads on segmentation benchmarks among general-purpose
+            contrastive encoders, including SigLIP 2. We also introduce <b>Puzzle Perception</b>, a puzzle-based
+            segmentation and visual question answering dataset that probes fine-grained spatial understanding.
+            TDDN doubles CLIP's segmentation accuracy on it (11.04 &rarr; 22.51 mIoU).
           </p>
         </div>
       </div>
@@ -145,28 +198,98 @@
         <h2 class="title is-3">Method</h2>
         <div class="content has-text-justified">
           <p>
-            DiffusedDINO pairs CleanDIFT decoder activations from layers {2, 5, 8}, which resolve fine spatial
-            boundaries without noise or timestep tuning, with DINOv3 final-layer patch tokens, which stay
-            semantically organized and patch-consistent. Each CleanDIFT layer is projected to a common 512-d
-            space, concatenated, and fused with the DINOv3 patch tokens; the fused tokens plus the DINOv3 CLS
-            token pass through two trainable self-attention blocks.
+            DiffusedDINO pairs CleanDIFT decoder activations from layers 2, 5, and 8 with DINOv3 final-layer
+            patch tokens. The CleanDIFT layers resolve fine spatial boundaries without noise or timestep tuning,
+            while the DINOv3 tokens stay semantically organized and patch-consistent. We project each CleanDIFT
+            layer to a shared 512-d space, concatenate them, and fuse the result with the DINOv3 patch tokens.
+            The fused tokens, along with the DINOv3 CLS token, then pass through two trainable self-attention
+            blocks.
           </p>
         </div>
-        <img src="static/images/method.png" alt="TDDN architecture">
+        <img src="static/images/tddn.png" alt="TDDN architecture" style="max-width: 480px; display: block; margin: 0 auto;">
         <p class="is-size-6 has-text-grey" style="margin-top: 0.75rem;">
-          <b>TDDN architecture.</b> Frozen CleanDIFT UNet and DINOv3 ViT-H/16+ feed a trainable fusion path;
-          RoBERTa-L is frozen on the text side. Only the per-layer MLPs, the fusion MLP, the self-attention
-          blocks, and the text projection are trained (~80M parameters, 5,000 iterations, 4&times;A100, ~15 hours).
+          <b>TDDN architecture.</b> The frozen CleanDIFT UNet and DINOv3 ViT-H/16+ feed a trainable fusion path,
+          and RoBERTa-L stays frozen on the text side. We train only the per-layer MLPs, the fusion MLP, the
+          self-attention blocks, and the text projection, about 80M parameters over 5,000 iterations on
+          4&times;A100 GPUs in roughly 15 hours.
         </p>
         <div class="content has-text-justified" style="margin-top: 1.5rem;">
           <p>
-            Text alignment follows the low-data recipe of STRUCTURE: a symmetric InfoNCE objective plus a
-            regulariser that preserves the pairwise geometry of each pretrained latent space. Because every
-            backbone stays frozen and the objective, text encoder, data, and schedule are held fixed across
-            conditions, any gain over CLIP is attributable to the fused representation rather than a stronger
-            objective or text backbone.
+            <b>Building the image and text embeddings.</b> On the vision side, two trainable self-attention
+            blocks refine the fused DiffusedDINO patch tokens alongside the DINOv3 CLS token. We average-pool
+            the refined patch tokens and concatenate them with the refined CLS token to form the final image
+            embedding. On the text side, frozen RoBERTa-L token representations pass through two trainable
+            self-attention blocks, get aggregated with masked mean pooling, and get projected by a trainable
+            linear layer into the same dimensionality as the image embedding.
+          </p>
+          <p>
+            <b>Training objective.</b> Text alignment follows the low-data recipe of STRUCTURE. We use a
+            symmetric InfoNCE contrastive loss over image-text pairs, which pulls matching pairs together and
+            pushes non-matching pairs apart, and combine it with a regulariser that preserves the pairwise
+            geometry of each pretrained latent space, anchored on the frozen DINOv3 features. This keeps
+            alignment from eroding the fine-grained structure the fused encoder is built to capture.
+          </p>
+          <p>
+            Every backbone stays frozen, and we hold the objective, text encoder, data, and schedule fixed
+            across conditions. Any gain over CLIP therefore comes from the fused representation, not from a
+            stronger objective or text backbone.
           </p>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DATASET ===================== -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Puzzle Perception Dataset</h2>
+        <div class="content has-text-justified">
+          <p>
+            Existing datasets each cover half of this problem. Segmentation benchmarks like COCO-Stuff and
+            ADE20K give pixel-level annotations but no question-answering task, while puzzle-reasoning
+            benchmarks like CLEVR, GQA, PuzzleVQA, and AlgoPuzzleVQA test reasoning over structured scenes but
+            offer no dense supervision. Puzzle Perception pairs pixel-level segmentation with puzzle-based
+            visual question answering (PVQA) across four structured domains, rendered at 512&times;512 over 30
+            classes with masks taken directly from the rendering pipeline. No Puzzle Perception image appears
+            in the alignment corpus, so every reported result on it reflects zero-shot transfer.
+          </p>
+        </div>
+
+        <div class="table-wrap">
+        <table class="table is-fullwidth is-hoverable">
+          <thead>
+            <tr><th>Puzzle</th><th>Seg</th><th>PVQA</th><th>Classes</th><th>Train</th><th>Val</th><th>Test</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Maze</td><td>&#10003;</td><td>&#10007;</td><td>8</td><td>2,000</td><td>500</td><td>500</td></tr>
+            <tr><td>Chess</td><td>&#10003;</td><td>&#10003;</td><td>15</td><td>2,000</td><td>500</td><td>500</td></tr>
+            <tr><td>Tower of Hanoi</td><td>&#10003;</td><td>&#10007;</td><td>7</td><td>2,000</td><td>500</td><td>500</td></tr>
+            <tr><td>N-Queens</td><td>&#10007;</td><td>&#10003;</td><td>2</td><td>&ndash;</td><td>&ndash;</td><td>100</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="table-caption">
+          <b>Table 1.</b> Statistics of the Puzzle Perception dataset, spanning three structured visual reasoning
+          tasks designed for both dense segmentation (Seg) and puzzle-based visual question answering (PVQA).
+        </p>
+
+        <div class="dataset-grid" style="margin-top: 1.5rem;">
+          <img src="static/images/puzzle_perception/maze_00558.png" alt="Maze sample">
+          <img src="static/images/puzzle_perception/maze_00964.png" alt="Maze sample">
+          <img src="static/images/puzzle_perception/maze_01118.png" alt="Maze sample">
+          <img src="static/images/puzzle_perception/maze_01269.png" alt="Maze sample">
+          <img src="static/images/puzzle_perception/chess_000001.png" alt="Chess sample">
+          <img src="static/images/puzzle_perception/chess_000809.png" alt="Chess sample">
+          <img src="static/images/puzzle_perception/hanoi_00193.png" alt="Tower of Hanoi sample">
+          <img src="static/images/puzzle_perception/hanoi_01158.png" alt="Tower of Hanoi sample">
+        </div>
+        <p class="is-size-6 has-text-grey" style="margin-top: 0.75rem;">
+          Maze varies wall texture while holding topology fixed, Chess mixes 2D and 3D renders, Tower of Hanoi
+          spans arrangements up to five disks per peg, and N-Queens varies board size from 8&times;8 to 11&times;11.
+        </p>
       </div>
     </div>
   </div>
@@ -182,23 +305,36 @@
         <h3 class="title is-5">PCA visualisation of patch features across encoders</h3>
         <div class="content has-text-justified">
           <p>
-            Patch features projected onto their top three principal components. CLIP produces fragmented,
+            We project patch features onto their top three principal components. CLIP produces fragmented,
             spatially inconsistent maps on structured images. <span class="dnerf">DiffusedDINO</span> keeps
-            CleanDIFT's boundary precision while recovering DINOv3's object-level signal, and TDDN preserves
-            that structure after text alignment.
+            CleanDIFT's boundary precision and recovers DINOv3's object-level signal, and TDDN preserves that
+            structure after text alignment.
           </p>
         </div>
-        <div id="pca-carousel" class="carousel results-carousel">
-          <div class="item"><img src="static/images/pca_maze.png" alt="PCA visualisation on Maze"></div>
-          <div class="item"><img src="static/images/pca_chess.png" alt="PCA visualisation on Chess"></div>
-          <div class="item"><img src="static/images/pca_toh.png" alt="PCA visualisation on Tower of Hanoi"></div>
+        <div class="slider" id="pca-carousel">
+          <div class="slider-viewport">
+            <div class="slider-track">
+              <div class="slider-slide"><img src="static/images/pca_maze.png" alt="PCA visualisation on Maze"></div>
+              <div class="slider-slide"><img src="static/images/pca_chess.png" alt="PCA visualisation on Chess"></div>
+              <div class="slider-slide"><img src="static/images/pca_toh.png" alt="PCA visualisation on Tower of Hanoi"></div>
+            </div>
+          </div>
+          <button class="slider-arrow slider-arrow-left" type="button" aria-label="Previous image">&#10094;</button>
+          <button class="slider-arrow slider-arrow-right" type="button" aria-label="Next image">&#10095;</button>
+          <div class="slider-dots"></div>
         </div>
 
         <h3 class="title is-5" style="margin-top: 2.5rem;">Zero-shot segmentation, keypoint matching, and retrieval</h3>
         <div class="content has-text-justified">
           <p>
             All models use the MaskCLIP readout except FG-CLIP 2, which uses its own trained dense head, so its
-            numbers reflect a component the other models do not have.
+            numbers reflect a component the other models don't have.
+          </p>
+          <p>
+            TDDN matches or exceeds SigLIP 2 on all five segmentation benchmarks and outperforms MetaCLIP,
+            OpenCLIP, and DFN across the board, using 590K alignment pairs against their billions. It also gains
+            over TDN (+1.6 ADE20K, +8.1 Cityscapes, +3.8 COCO-Stuff, +4.1 SPair), which isolates the CleanDIFT
+            contribution.
           </p>
         </div>
         <div class="table-wrap">
@@ -222,10 +358,10 @@
           </tbody>
         </table>
         </div>
-        <p class="takeaway">
-          TDDN matches or exceeds SigLIP 2 on all five segmentation benchmarks and outperforms MetaCLIP,
-          OpenCLIP, and DFN across the board, using 590K alignment pairs against their billions. The gain over
-          TDN (+1.6 ADE20K, +8.1 Cityscapes, +3.8 COCO-Stuff, +4.1 SPair) isolates the CleanDIFT contribution.
+        <p class="table-caption">
+          <b>Table 2.</b> Comparison of TDN and TDDN with baselines on zero-shot open-vocabulary segmentation
+          (Seg, mIoU), keypoint matching (KPM, PCK@0.1), and image-text retrieval (I2T/T2I, R@1). Bold marks the
+          best value per column.
         </p>
 
         <h3 class="title is-5" style="margin-top: 2.5rem;">Vision-only representation quality</h3>
@@ -238,7 +374,7 @@
             <tr class="group-row"><td colspan="4">Vision-only</td></tr>
             <tr><td>DINOv2-B/14</td><td>75.79</td><td>55.44</td><td>78.22</td></tr>
             <tr><td>DINOv2-G/14</td><td>78.80</td><td>55.72</td><td>79.29</td></tr>
-            <tr><td>SD&prime;</td><td>74.77</td><td>56.46</td><td>12.54</td></tr>
+            <tr><td>SD&prime; (Stable Diffusion)</td><td>74.77</td><td>56.46</td><td>12.54</td></tr>
             <tr><td>SD&prime; + DINOv2-G/14</td><td>78.70</td><td>61.28</td><td>78.39</td></tr>
             <tr><td>DN (DINOv3)</td><td>76.18</td><td>58.36</td><td>83.11</td></tr>
             <tr><td>CD&prime; (CleanDIFT)</td><td>79.20</td><td>61.20</td><td>38.74</td></tr>
@@ -250,17 +386,30 @@
           </tbody>
         </table>
         </div>
-        <p class="is-size-6 has-text-grey">
-          Segmentation on Puzzle Perception with an identical linear probe, keypoint matching on SPair-71k,
-          and k-NN classification on ImageNet-1k. X&prime; denotes the PCA projection of X.
+        <p class="table-caption">
+          <b>Table 3.</b> Comparison of DDN&prime;, TDN, and TDDN with baselines on downstream visual perception
+          tasks. Seg (mIoU) measures segmentation on Puzzle Perception with an identical linear probe, KPM
+          (PCK@0.1) measures keypoint matching on SPair-71k, and Cls (top-1) measures image classification via
+          k-NN on ImageNet-1k. X&prime; denotes the PCA projection of X, where X &isin; {SD, DN, DDN}. Bold marks
+          the best value per column.
         </p>
 
         <h3 class="title is-5" style="margin-top: 2.5rem;">Region-guided VLM perception</h3>
         <div class="content has-text-justified">
           <p>
-            We use Contrastive Region Guidance to test whether TDDN's predicted regions can steer a frozen VLM
-            on Puzzle Perception (Chess). No VLM weights are updated, and TDDN receives no puzzle segmentation
-            supervision.
+            Region-based prompting such as Set-of-Mark doesn't consistently help VLMs, since it relies on the
+            VLM's own visual priors to interpret an overlay it was never trained to read. Contrastive Region
+            Guidance (CRG) instead steers a frozen VLM by contrasting its prediction on the full image against
+            the same image with the queried region blacked out, without updating any VLM weights. The
+            <b>oracle</b> condition blacks out the ground-truth region and upper-bounds the achievable gain,
+            while the <b>TDDN</b> condition blacks out the region TDDN itself predicts, with no puzzle
+            segmentation supervision. We test whether TDDN's predicted regions can still steer a frozen VLM on
+            Puzzle Perception (Chess).
+          </p>
+          <p>
+            The benefit of region guidance tracks model headroom. Models with room to improve gain from both
+            region sources, while models near ceiling gain little from either. Where CRG helps, TDDN's predicted
+            regions recover a substantial share of the oracle gain.
           </p>
         </div>
         <div class="table-wrap">
@@ -270,8 +419,8 @@
           </thead>
           <tbody>
             <tr><td>InternVL-3-8B</td><td>48.0</td><td>+3.2</td><td>+2.1</td></tr>
-            <tr><td>Qwen2.5-VL-7B-Instruct</td><td>48.4</td><td>+5.6</td><td class="best">+3.8</td></tr>
-            <tr><td>Gemma-4-12B-it</td><td>60.0</td><td class="best">+6.4</td><td>+2.6</td></tr>
+            <tr><td>Qwen2.5-VL-7B-Instruct</td><td>48.4</td><td>+5.6</td><td>+3.8</td></tr>
+            <tr><td>Gemma-4-12B-it</td><td>60.0</td><td>+6.4</td><td>+2.6</td></tr>
             <tr><td>Gemma-3-27B</td><td>57.8</td><td>+1.7</td><td>&minus;0.6</td></tr>
             <tr><td>Gemma-4-26B-A4B-it</td><td>72.8</td><td>+2.5</td><td>+1.1</td></tr>
             <tr><td>Qwen3.6-35B-A3B</td><td>79.9</td><td>&minus;2.1</td><td>&minus;3.8</td></tr>
@@ -280,11 +429,32 @@
           </tbody>
         </table>
         </div>
-        <p class="takeaway">
-          The benefit of region guidance tracks model headroom. Models with room to improve gain from both
-          region sources, while models near ceiling gain little from either. Where CRG helps, TDDN's predicted
-          regions recover a substantial share of the oracle gain.
+        <p class="table-caption">
+          <b>Table 4.</b> Contrastive Region Guidance (CRG) with TDDN-predicted regions on Puzzle Perception
+          (Chess). We report VLM question accuracy (%), macro-averaged over questions. Image only is the
+          image-only baseline. &Delta; oracle and &Delta; TDDN are the accuracy changes from CRG using
+          ground-truth (oracle) and TDDN-predicted regions.
         </p>
+
+        <div class="content has-text-justified" style="margin-top: 1.5rem;">
+          <p>
+            Each panel shows the source board, the ground-truth (oracle) region blacked out, and the
+            TDDN-predicted region blacked out, with the VLM's answer under each condition.
+          </p>
+        </div>
+        <div class="slider" id="results-carousel">
+          <div class="slider-viewport">
+            <div class="slider-track">
+              <div class="slider-slide"><img src="static/images/crg_relation.png" alt="CRG example: relation"></div>
+              <div class="slider-slide"><img src="static/images/crg_geometric.png" alt="CRG example: geometric"></div>
+              <div class="slider-slide"><img src="static/images/crg_localization.png" alt="CRG example: localization"></div>
+              <div class="slider-slide"><img src="static/images/crg_existence.png" alt="CRG example: existence"></div>
+            </div>
+          </div>
+          <button class="slider-arrow slider-arrow-left" type="button" aria-label="Previous image">&#10094;</button>
+          <button class="slider-arrow slider-arrow-right" type="button" aria-label="Next image">&#10095;</button>
+          <div class="slider-dots"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -302,10 +472,10 @@
             <div class="content">
               <h3 class="title is-5">The two sources split the work by granularity</h3>
               <p>
-                At the patch level the fused representation is closest to CleanDIFT (CKA 0.96, PWCCA 1.00); at
-                the global level it is closest to DINOv3 (CKA 0.81, PWCCA 0.99). Variance partitioning confirms
-                neither source is recoverable from the other, so CleanDIFT supplies patch structure while
-                DINOv3 anchors global semantics.
+                At the patch level, the fused representation sits closest to CleanDIFT (CKA 0.96, PWCCA 1.00).
+                At the global level, it sits closest to DINOv3 (CKA 0.81, PWCCA 0.99). Variance partitioning
+                confirms that neither source is recoverable from the other, so CleanDIFT supplies patch
+                structure while DINOv3 anchors global semantics.
               </p>
             </div>
           </div>
@@ -313,9 +483,9 @@
             <div class="content">
               <h3 class="title is-5">Fusion buys balance, not one axis</h3>
               <p>
-                Single encoders trade alignment against uniformity: DINOv3 has the best alignment (0.33) but the
+                Single encoders trade alignment against uniformity. DINOv3 has the best alignment (0.33) but the
                 worst uniformity (&minus;1.10), while CleanDIFT and SD show the reverse. DiffusedDINO takes the
-                best joint position (0.79, &minus;2.12), which is what the downstream gains track.
+                best joint position (0.79, &minus;2.12), and the downstream gains track that balance.
               </p>
             </div>
           </div>
@@ -324,12 +494,12 @@
         <div class="columns">
           <div class="column">
             <div class="content">
-              <h3 class="title is-5">Alignment does not have to erase perception</h3>
+              <h3 class="title is-5">Alignment doesn't have to erase perception</h3>
               <p>
                 Freezing the backbones and adding the STRUCTURE regulariser keeps the pretrained geometry intact
                 through contrastive training. The dense advantage survives text alignment with 590K pairs
-                against CLIP's 400M, so the gap comes from the representation rather than alignment scale or a
-                task-specific dense head.
+                against CLIP's 400M, so the gap comes from the representation itself, not from alignment scale
+                or a task-specific dense head.
               </p>
             </div>
           </div>
@@ -344,69 +514,6 @@
               </p>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===================== DATASET ===================== -->
-<section class="section">
-  <div class="container is-max-desktop">
-    <div class="columns is-centered">
-      <div class="column is-full-width">
-        <h2 class="title is-3">Puzzle Perception</h2>
-        <div class="content has-text-justified">
-          <p>
-            Existing segmentation benchmarks cover natural images with coarse semantics. Puzzle Perception pairs
-            pixel-level annotations with puzzle-based VQA across four structured domains, rendered at
-            512&times;512 over 30 classes, with masks taken directly from the rendering pipeline so there is no
-            annotation noise. No Puzzle Perception image appears in the alignment corpus, so all reported
-            results on it are zero-shot transfer.
-          </p>
-        </div>
-
-        <div class="table-wrap">
-        <table class="table is-fullwidth is-hoverable">
-          <thead>
-            <tr><th>Puzzle</th><th>Seg</th><th>PVQA</th><th>Classes</th><th>Train</th><th>Val</th><th>Test</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Maze</td><td>&#10003;</td><td>&#10007;</td><td>8</td><td>2,000</td><td>500</td><td>500</td></tr>
-            <tr><td>Chess</td><td>&#10003;</td><td>&#10003;</td><td>15</td><td>2,000</td><td>500</td><td>500</td></tr>
-            <tr><td>Tower of Hanoi</td><td>&#10003;</td><td>&#10007;</td><td>7</td><td>2,000</td><td>500</td><td>500</td></tr>
-            <tr><td>N-Queens</td><td>&#10007;</td><td>&#10003;</td><td>2</td><td>&ndash;</td><td>&ndash;</td><td>100</td></tr>
-          </tbody>
-        </table>
-        </div>
-
-        <img src="static/images/dataset.png" alt="Puzzle Perception samples" style="margin-top: 1rem;">
-        <p class="is-size-6 has-text-grey" style="margin-top: 0.75rem;">
-          Maze varies wall texture while holding topology fixed, Chess mixes 2D and 3D renders, Tower of Hanoi
-          spans arrangements up to five disks per peg, and N-Queens varies board size from 8&times;8 to 11&times;11.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===================== QUALITATIVE CAROUSEL ===================== -->
-<section class="section">
-  <div class="container is-max-desktop">
-    <div class="columns is-centered">
-      <div class="column is-full-width">
-        <h2 class="title is-3">Qualitative examples</h2>
-        <div class="content has-text-justified">
-          <p>
-            Each panel shows the source board, the ground-truth (oracle) region blacked out, and the
-            TDDN-predicted region blacked out, with the VLM's answer under each condition.
-          </p>
-        </div>
-        <div id="results-carousel" class="carousel results-carousel">
-          <div class="item"><img src="static/images/crg1.png" alt="CRG example: relation"></div>
-          <div class="item"><img src="static/images/crg2.png" alt="CRG example: geometric"></div>
-          <div class="item"><img src="static/images/crg3.png" alt="CRG example: localization"></div>
-          <div class="item"><img src="static/images/crg4.png" alt="CRG example: existence"></div>
         </div>
       </div>
     </div>
@@ -449,22 +556,33 @@
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bulma-carousel@4.0.24/dist/js/bulma-carousel.min.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    bulmaCarousel.attach('#results-carousel', {
-      slidesToScroll: 1,
-      slidesToShow: 2,
-      loop: true,
-      infinite: true,
-      autoplay: false
-    });
-    bulmaCarousel.attach('#pca-carousel', {
-      slidesToScroll: 1,
-      slidesToShow: 1,
-      loop: true,
-      infinite: true,
-      autoplay: false
+    document.querySelectorAll('.slider').forEach(function (slider) {
+      var track = slider.querySelector('.slider-track');
+      var slides = Array.from(slider.querySelectorAll('.slider-slide'));
+      var dotsWrap = slider.querySelector('.slider-dots');
+      var current = 0;
+
+      slides.forEach(function (_, i) {
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.setAttribute('aria-label', 'Go to image ' + (i + 1));
+        dot.addEventListener('click', function () { show(i); });
+        dotsWrap.appendChild(dot);
+      });
+      var dots = Array.from(dotsWrap.children);
+
+      function show(index) {
+        current = (index + slides.length) % slides.length;
+        track.style.transform = 'translateX(-' + (current * 100) + '%)';
+        dots.forEach(function (dot, i) { dot.classList.toggle('is-active', i === current); });
+      }
+
+      slider.querySelector('.slider-arrow-left').addEventListener('click', function () { show(current - 1); });
+      slider.querySelector('.slider-arrow-right').addEventListener('click', function () { show(current + 1); });
+
+      show(0);
     });
   });
 </script>
