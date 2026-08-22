@@ -108,21 +108,6 @@
   </div>
 </section>
 
-<!-- ===================== TEASER ===================== -->
-<section class="hero teaser">
-  <div class="container is-max-desktop">
-    <div class="hero-body">
-      <img src="static/images/teaser.png" alt="PCA visualisation of patch features across encoders">
-      <h2 class="subtitle has-text-centered">
-        Patch features projected onto their top three principal components. CLIP produces fragmented,
-        spatially inconsistent maps on structured images. <span class="dnerf">DiffusedDINO</span> keeps
-        CleanDIFT's boundary precision while recovering DINOv3's object-level signal, and TDDN preserves
-        that structure after text alignment.
-      </h2>
-    </div>
-  </div>
-</section>
-
 <!-- ===================== ABSTRACT ===================== -->
 <section class="section">
   <div class="container is-max-desktop">
@@ -194,7 +179,22 @@
       <div class="column is-full-width">
         <h2 class="title is-3">Results</h2>
 
-        <h3 class="title is-5">Zero-shot segmentation, keypoint matching, and retrieval</h3>
+        <h3 class="title is-5">PCA visualisation of patch features across encoders</h3>
+        <div class="content has-text-justified">
+          <p>
+            Patch features projected onto their top three principal components. CLIP produces fragmented,
+            spatially inconsistent maps on structured images. <span class="dnerf">DiffusedDINO</span> keeps
+            CleanDIFT's boundary precision while recovering DINOv3's object-level signal, and TDDN preserves
+            that structure after text alignment.
+          </p>
+        </div>
+        <div id="pca-carousel" class="carousel results-carousel">
+          <div class="item"><img src="static/images/pca_maze.png" alt="PCA visualisation on Maze"></div>
+          <div class="item"><img src="static/images/pca_chess.png" alt="PCA visualisation on Chess"></div>
+          <div class="item"><img src="static/images/pca_toh.png" alt="PCA visualisation on Tower of Hanoi"></div>
+        </div>
+
+        <h3 class="title is-5" style="margin-top: 2.5rem;">Zero-shot segmentation, keypoint matching, and retrieval</h3>
         <div class="content has-text-justified">
           <p>
             All models use the MaskCLIP readout except FG-CLIP 2, which uses its own trained dense head, so its
@@ -417,12 +417,14 @@
 <section class="section" id="BibTeX">
   <div class="container is-max-desktop content">
     <h2 class="title">BibTeX</h2>
-    <pre><code>@inproceedings{patnala2026tddn,
+    <pre><code>@misc{patnala2026tddn,
   title     = {TDDN: Text-aligned Diffused DINO Network for Puzzle Understanding},
   author    = {Patnala, Harsha and Banerjee, Debopriyo and
                Munot, Ayush Sunil and Aditya, Somak},
-  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
-  year      = {2026}
+  year      = {2026},
+  eprint    = {XXXX.XXXXX},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CV}
 }</code></pre>
   </div>
 </section>
@@ -453,6 +455,13 @@
     bulmaCarousel.attach('#results-carousel', {
       slidesToScroll: 1,
       slidesToShow: 2,
+      loop: true,
+      infinite: true,
+      autoplay: false
+    });
+    bulmaCarousel.attach('#pca-carousel', {
+      slidesToScroll: 1,
+      slidesToShow: 1,
       loop: true,
       infinite: true,
       autoplay: false
